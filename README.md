@@ -15,4 +15,9 @@ Accuracy: 55.96%
 
 Accuracy: 65.96%
 ![Performance Plots](val_loss_curve_2.png)
+
+**After 2nd tuning**
+
+Accuracy: 78.89%
+![Performance Plots](val_loss_curve_3.png)
 ---
