@@ -39,7 +39,7 @@ class conv_block(nn.Module):
     def __init__(self,in_ch,out_ch):
         super().__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(in_ch,out_ch,kernel_size=3,padding=1),
+            nn.Conv2d(in_ch,out_ch,kernel_size=3,stride=2,padding=1),
             nn.BatchNorm2d(out_ch),
             nn.ReLU()
         )
@@ -66,10 +66,10 @@ class neural_network(nn.Module):
         x = self.classifier(x)
         return x
 
-generations = 3
+generations = 20
 model = neural_network()
 loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(),lr=0.01)
+optimizer = torch.optim.Adam(model.parameters(),lr=0.001)
 
 for i in range(generations):
     model.train()
@@ -80,7 +80,7 @@ for i in range(generations):
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-        #print(f"Train Loss: {loss}\n")
+        print(f"Train Loss: {loss}\n")
     model.eval()
     with torch.no_grad():
         for batch_d,batch_l in val_dataloader:
@@ -90,6 +90,8 @@ for i in range(generations):
 
 correct = 0
 total = 0
+model.eval()
+
 with torch.no_grad():
     for batch_d,batch_l in val_dataloader:
         output = model(batch_d)
