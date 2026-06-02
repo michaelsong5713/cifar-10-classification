@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+if torch.cuda.is_available():
+    print("GPU Name:", torch.cuda.get_device_name(0),"\n")
 
 training_data = datasets.CIFAR10(
     root = "data",
@@ -54,7 +56,7 @@ class conv_block(nn.Module):
     def __init__(self,in_ch,out_ch):
         super().__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(in_ch,out_ch,kernel_size=3,stride=2,padding=1),
+            nn.Conv2d(in_ch,out_ch,kernel_size=3,stride=1,padding=1),
             nn.BatchNorm2d(out_ch),
             nn.ReLU()
         )
@@ -66,25 +68,31 @@ class neural_network(nn.Module):
     def __init__(self):
         super().__init__()
         self.features = nn.Sequential(
-            conv_block(3,32), #16x16
-            conv_block(32,64), #8x8
-            conv_block(64,128), #4x4
-            conv_block(128,256) #2x2
+            conv_block(3,32), #32x32
+            conv_block(32,64),
+            conv_block(64,128),
+            nn.MaxPool2d(kernel_size=2,stride=2), #16x16
+            conv_block(128,256), 
+            conv_block(256,256), 
+            nn.MaxPool2d(kernel_size=2,stride=2), #8x8
+            conv_block(256,512), 
+            conv_block(512,512),
+            nn.MaxPool2d(kernel_size=2,stride=2), #4x4 
         )
         self.classifier = nn.Sequential(
             #nn.AdaptiveAvgPool2d((1,1)),
             nn.Flatten(),
-            nn.Linear(256*2*2,256),
+            nn.Linear(512*4*4,512*4*2),
             nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(256,10)
+            nn.Dropout(0.3),
+            nn.Linear(512*4*2,10)
         )
     def forward(self,x):
         x = self.features(x)
         x = self.classifier(x)
         return x
-
-generations = 50
+    
+generations = 100
 model = neural_network().to(device)
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(),lr=0.001,weight_decay=1e-4)
@@ -93,6 +101,8 @@ val_accuracies = []
 
 
 for i in range(generations):
+    cur = i+1
+    print(f"{cur}")
     correct = 0
     total = 0
     model.train()
@@ -107,9 +117,8 @@ for i in range(generations):
         prediction = torch.argmax(output,dim=1)
         correct += torch.sum(prediction==batch_l)
         total+=prediction.size(0)
-        #print(f"Train Loss: {loss}\n")
     accuracy = correct/total*100
-    print(f"Train Loss: {accuracy}\n")
+    print(f"Train Accuracy: {accuracy}")
     correct = 0
     total = 0
     model.eval()
@@ -121,10 +130,9 @@ for i in range(generations):
             prediction = torch.argmax(output,dim=1)
             correct += torch.sum(prediction==batch_l)
             total+=prediction.size(0)
-            #print(f"Val Loss: {loss}\n")
     accuracy = correct/total*100
-    val_accuracies.append(accuracy)
-    print(f"Val Loss: {accuracy}\n")
+    val_accuracies.append(accuracy.item())
+    print(f"Val Accuracy: {accuracy}")
     scheduler.step()
 
 correct = 0
@@ -148,7 +156,7 @@ epochs = range(1, generations + 1)
  
 fig, ax = plt.subplots(figsize=(8, 5))
 ax.plot(epochs, val_accuracies, color="#5563DE", linewidth=2, marker="o",
-        markersize=4, label="Validation loss")
+        markersize=4, label="Validation Accuracy")
 ax.set_xlabel("Epoch")
 ax.set_ylabel("Loss")
 ax.set_title("Validation accuracy over training")
