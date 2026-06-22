@@ -1,6 +1,6 @@
 # CIFAR-10 Classification
 
-Fifth machine learning project. Using neural networks to classify 32x32 images into 10 classes in the CIFAR-10 Database.
+Using neural networks to classify 32x32 images into 10 classes in the CIFAR-10 Database.
 
 ---
 
